@@ -1,116 +1,3 @@
-/*package main
-
-import (
-	"flag"
-	"log"
-	"net"
-	"net/url"
-	"os"
-	"os/signal"
-	"time"
-
-	"github.com/gorilla/websocket"
-)
-
-var addr = flag.String("r", "wangyu175.cf:8080", "cdn")
-var l = flag.String("l", ":25565", "local port")
-var u = url.URL{Scheme: "ws", Host: *addr, Path: "/"}
-
-func main() {
-	flag.Parse()
-	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
-
-	conns, err := accept()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for conn := range conns {
-		connect(conn)
-	}
-}
-
-func accept() (<-chan net.Conn, error) {
-	listener, err := net.Listen("tcp", *l)
-	if err != nil {
-		return nil, err
-	}
-	ch := make(chan net.Conn)
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			ch <- conn
-		}
-	}()
-	go func() {
-		ch := make(chan os.Signal)
-		signal.Notify(ch, os.Interrupt)
-		<-ch
-		close(ch)
-		time.Sleep(time.Second * 2)
-		os.Exit(0)
-	}()
-	return ch, nil
-}
-
-func connect(conn net.Conn) {
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	b := make([]byte, 1024)
-	go func(c *websocket.Conn) {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println(err)
-				closeWS(c)
-				return
-			}
-			_, err = conn.Write(message)
-			if err != nil {
-				log.Println(err)
-				closeWS(c)
-				return
-			}
-			//time.Sleep(time.Millisecond)
-		}
-	}(c)
-	for {
-		nR, err := conn.Read(b)
-		if err != nil {
-			log.Println(err)
-			closeWS(c)
-			return
-		}
-		//println(nR)
-		if nR > 0 {
-			err = c.WriteMessage(websocket.BinaryMessage, b[:nR])
-			if err != nil {
-				log.Println(err)
-				closeWS(c)
-				return
-			}
-		}
-		//time.Sleep(time.Millisecond)
-	}
-}
-
-func closeWS(c *websocket.Conn) {
-	err := c.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-}
-*/
-// Copyright 2015 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
@@ -127,16 +14,23 @@ import (
 	"strings"
 )
 
-var addr = flag.String("a", "", "server address+port(used to resolve the ip to be connected) or ip+port")
-var https = flag.Bool("s", false, "enable https")
-var listen = flag.String("l", ":25565", "listen address")
-var fake = flag.String("fake", "", "fake server name(used in sni)")
-var real_ = flag.String("real", "", "real server name(used in http host)")
+var (
+	addr   string
+	https  string
+	listen string
+	fake   string
+	real_  string
+)
 
 func init() {
+	//flag.StringVar(&addr, "a", "", "server address+port(used to resolve the ip to be connected) or ip+port")
+	//flag.BoolVar(&https, "s", false, "enable https")
+	//flag.StringVar(&listen, "l", ":25565", "listen address")
+	//flag.StringVar(&fake, "fake", "", "fake server name(used in sni)")
+	//flag.StringVar(&real_, "real", "", "real server name(used in http host)")
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
-	if *addr == "" {
+	if addr == "" {
 		log.Println("address should not be null, please use -a xxx to set the address")
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -148,7 +42,7 @@ func main() {
 	ip := Tcping(generate)
 	println(ip.String())*/
 
-	listener, err := net.Listen("tcp", *listen)
+	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -219,25 +113,25 @@ func handle(conn net.Conn) {
 func NewWSConnection() (*websocket.Conn, error) {
 	var u url.URL
 	var fake_ string
-	if *fake != "" {
-		fake_ = *fake
+	if fake != "" {
+		fake_ = fake
 	} else {
-		fake_ = strings.Split(*addr, ":")[0]
+		fake_ = strings.Split(addr, ":")[0]
 	}
-	if *https {
-		if *real_ != "" {
-			u = url.URL{Scheme: "wss", Host: *real_, Path: "/echo"}
+	if https == "true" {
+		if real_ != "" {
+			u = url.URL{Scheme: "wss", Host: real_, Path: "/echo"}
 		} else {
-			u = url.URL{Scheme: "wss", Host: *addr, Path: "/echo"}
+			u = url.URL{Scheme: "wss", Host: addr, Path: "/echo"}
 		}
 	} else {
-		if *real_ != "" {
-			u = url.URL{Scheme: "ws", Host: *real_, Path: "/echo"}
+		if real_ != "" {
+			u = url.URL{Scheme: "ws", Host: real_, Path: "/echo"}
 		} else {
-			u = url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+			u = url.URL{Scheme: "ws", Host: addr, Path: "/echo"}
 		}
 	}
-	addr_ := *addr
+	addr_ := addr
 	log.Printf("connecting to %s", u.String())
 	c, _, err := websocket.Dial(context.TODO(), u.String(), &websocket.DialOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
