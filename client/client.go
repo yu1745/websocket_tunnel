@@ -120,15 +120,15 @@ func NewWSConnection() (*websocket.Conn, error) {
 	}
 	if https == "true" {
 		if real_ != "" {
-			u = url.URL{Scheme: "wss", Host: real_, Path: "/echo"}
+			u = url.URL{Scheme: "wss", Host: real_, Path: "/proxy"}
 		} else {
-			u = url.URL{Scheme: "wss", Host: addr, Path: "/echo"}
+			u = url.URL{Scheme: "wss", Host: addr, Path: "/proxy"}
 		}
 	} else {
 		if real_ != "" {
-			u = url.URL{Scheme: "ws", Host: real_, Path: "/echo"}
+			u = url.URL{Scheme: "ws", Host: real_, Path: "/proxy"}
 		} else {
-			u = url.URL{Scheme: "ws", Host: addr, Path: "/echo"}
+			u = url.URL{Scheme: "ws", Host: addr, Path: "/proxy"}
 		}
 	}
 	addr_ := addr

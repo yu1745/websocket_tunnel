@@ -8,3 +8,7 @@ cd client
 go build -ldflags "-X main.addr=$env:addr -X main.https=$env:https -X main.listen=$env:listen -X main.fake=$env:fake -X main.real_=$env:real" client.go
 mv client.exe ..
 cd ..
+cd server
+go build server.go
+mv server.exe ..
+cd ..

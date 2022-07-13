@@ -25,6 +25,7 @@ func init() {
 	flag.StringVar(&dst, "d", "localhost:25565", "destination address")
 	flag.Parse()
 	if https {
+		println("It is recommended to enable https to avoid HUGE traffic bill")
 		if cert == "" || key == "" {
 			println("error: when enabling https, you should provide cert and private key by adding -c xxx.pem and -k xxx.pem/xxx.key in the commandline")
 			flag.PrintDefaults()
@@ -35,7 +36,7 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/echo", echo)
+	http.HandleFunc("/proxy", proxy)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("hello"))
 	})
@@ -46,9 +47,9 @@ func main() {
 	}
 }
 
-func echo(w http.ResponseWriter, r *http.Request) {
+func proxy(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
-	log.Println("accept a connection")
+	//log.Printf("accept a connection  %s", r.Header)
 	if err != nil {
 		log.Println(err)
 	}
