@@ -221,7 +221,9 @@ func init() {
 
 func main() {
 	http.HandleFunc("/echo", echo)
-	//http.HandleFunc("/", home)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("hello"))
+	})
 	if *https {
 		log.Fatal(http.ListenAndServeTLS(*addr, *cert, *key, nil))
 	} else {

@@ -123,17 +123,24 @@ import (
 	"net/http"
 	"net/url"
 	"nhooyr.io/websocket"
+	"os"
 	"strings"
 )
 
-var addr = flag.String("a", "opencdn.jomodns.com:443", "server address")
+var addr = flag.String("a", "", "server address+port(used to resolve the ip to be connected) or ip+port")
 var https = flag.Bool("s", false, "enable https")
 var listen = flag.String("l", ":25565", "listen address")
-var fake = flag.String("fake", "", "fake server name")
+var fake = flag.String("fake", "", "fake server name(used in sni)")
+var real_ = flag.String("real", "", "real server name(used in http host)")
 
 func init() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
+	if *addr == "" {
+		log.Println("address should not be null, please use -a xxx to set the address")
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 }
 
 func main() {
@@ -218,17 +225,26 @@ func NewWSConnection() (*websocket.Conn, error) {
 		fake_ = strings.Split(*addr, ":")[0]
 	}
 	if *https {
-		u = url.URL{Scheme: "wss", Host: *addr, Path: "/echo"}
+		if *real_ != "" {
+			u = url.URL{Scheme: "wss", Host: *real_, Path: "/echo"}
+		} else {
+			u = url.URL{Scheme: "wss", Host: *addr, Path: "/echo"}
+		}
 	} else {
-		u = url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+		if *real_ != "" {
+			u = url.URL{Scheme: "ws", Host: *real_, Path: "/echo"}
+		} else {
+			u = url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+		}
 	}
+	addr_ := *addr
 	log.Printf("connecting to %s", u.String())
 	c, _, err := websocket.Dial(context.TODO(), u.String(), &websocket.DialOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return tls.Dial(network, addr, &tls.Config{ServerName: fake_})
 		},
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return net.Dial(network, addr)
+			return net.Dial(network, addr_)
 		},
 	}}})
 	return c, err

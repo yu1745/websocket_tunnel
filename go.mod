@@ -1,4 +1,4 @@
-module websocket_tunnel
+module github.com/yu1745/websocket_tunnel
 
 go 1.18
 
