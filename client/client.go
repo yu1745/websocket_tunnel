@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"embed"
 	"flag"
 	"io"
 	"log"
@@ -22,6 +24,10 @@ var (
 	real_  string
 )
 
+//go:embed RootCAs
+var CA embed.FS
+var pool *x509.CertPool
+
 func init() {
 	//flag.StringVar(&addr, "a", "", "server address+port(used to resolve the ip to be connected) or ip+port")
 	//flag.BoolVar(&https, "s", false, "enable https")
@@ -35,6 +41,12 @@ func init() {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
+	pool = x509.NewCertPool()
+	b, err := CA.ReadFile("RootCAs")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	pool.AppendCertsFromPEM(b)
 }
 
 func main() {
@@ -135,7 +147,7 @@ func NewWSConnection() (*websocket.Conn, error) {
 	log.Printf("connecting to %s", u.String())
 	c, _, err := websocket.Dial(context.TODO(), u.String(), &websocket.DialOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return tls.Dial(network, addr, &tls.Config{ServerName: fake_})
+			return tls.Dial(network, addr, &tls.Config{ServerName: fake_, RootCAs: pool})
 		},
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return net.Dial(network, addr_)
