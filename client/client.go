@@ -24,13 +24,14 @@ var (
 	real_  string
 )
 
+// CA from ubuntu 20.04
 //go:embed RootCAs
 var CA embed.FS
 var pool *x509.CertPool
 
 func init() {
 	//flag.StringVar(&addr, "a", "", "server address+port(used to resolve the ip to be connected) or ip+port")
-	//flag.BoolVar(&https, "s", false, "enable https")
+	//flag.StringVar(&https, "s", "false", "enable https")
 	//flag.StringVar(&listen, "l", ":25565", "listen address")
 	//flag.StringVar(&fake, "fake", "", "fake server name(used in sni)")
 	//flag.StringVar(&real_, "real", "", "real server name(used in http host)")
@@ -147,7 +148,7 @@ func NewWSConnection() (*websocket.Conn, error) {
 	log.Printf("connecting to %s", u.String())
 	c, _, err := websocket.Dial(context.TODO(), u.String(), &websocket.DialOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return tls.Dial(network, addr, &tls.Config{ServerName: fake_, RootCAs: pool})
+			return tls.Dial(network, addr_, &tls.Config{ServerName: fake_, RootCAs: pool})
 		},
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return net.Dial(network, addr_)
