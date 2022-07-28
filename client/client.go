@@ -22,6 +22,7 @@ var (
 	listen string
 	fake   string
 	real_  string
+	DEBUG  string
 )
 
 // CA from ubuntu 20.04
@@ -38,7 +39,7 @@ func init() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 	if addr == "" {
-		log.Println("address should not be null, please use -a xxx to set the address")
+		debug("address should not be null, please use -a xxx to set the address")
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
@@ -62,7 +63,7 @@ func main() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Println(err)
+			debug(err)
 		}
 		//_ = conn.SetReadDeadline(time.Unix(0, 0))
 		go handle(conn)
@@ -80,51 +81,19 @@ func handle(conn net.Conn) {
 	go func() {
 		_, err := io.Copy(netConn, conn)
 		if err != nil {
-			log.Println(err)
+			debug(err)
 		}
 	}()
 	_, err = io.Copy(conn, netConn)
 	if err != nil {
-		log.Println(err)
+		debug(err)
 	}
 	_ = c.Close(websocket.StatusNormalClosure, "")
 	conn.Close()
-	/*go func() {
-		ticker := time.NewTicker(10 * time.Millisecond)
-		for {
-			<-ticker.C
-			_, received, err := c.Read(context.Background())
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			_, err = conn.Write(received)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		}
-	}()
-	buf := make([]byte, 1024*1024)
-	ticker := time.NewTicker(10 * time.Millisecond)
-	for {
-		<-ticker.C
-		nR, err := conn.Read(buf)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		err = c.Write(context.Background(), websocket.MessageBinary, buf[:nR])
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-	}*/
 }
 
 func NewWSConnection() (*websocket.Conn, error) {
-	var u url.URL
+	var u = url.URL{Host: addr, Path: "/proxy"}
 	var fake_ string
 	if fake != "" {
 		fake_ = fake
@@ -132,20 +101,15 @@ func NewWSConnection() (*websocket.Conn, error) {
 		fake_ = strings.Split(addr, ":")[0]
 	}
 	if https == "true" {
-		if real_ != "" {
-			u = url.URL{Scheme: "wss", Host: real_, Path: "/proxy"}
-		} else {
-			u = url.URL{Scheme: "wss", Host: addr, Path: "/proxy"}
-		}
+		u.Scheme = "wss"
 	} else {
-		if real_ != "" {
-			u = url.URL{Scheme: "ws", Host: real_, Path: "/proxy"}
-		} else {
-			u = url.URL{Scheme: "ws", Host: addr, Path: "/proxy"}
-		}
+		u.Scheme = "ws"
+	}
+	if real_ != "" {
+		u.Host = real_
 	}
 	addr_ := addr
-	log.Printf("connecting to %s", u.String())
+	debugf("connecting to %s", u.String())
 	c, _, err := websocket.Dial(context.TODO(), u.String(), &websocket.DialOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return tls.Dial(network, addr_, &tls.Config{ServerName: fake_, RootCAs: pool})
@@ -155,4 +119,16 @@ func NewWSConnection() (*websocket.Conn, error) {
 		},
 	}}})
 	return c, err
+}
+
+func debug(v ...any) {
+	if DEBUG == "true" {
+		log.Println(v)
+	}
+}
+
+func debugf(format string, v ...any) {
+	if DEBUG == "true" {
+		log.Printf(format, v)
+	}
 }
