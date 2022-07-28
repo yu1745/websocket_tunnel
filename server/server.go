@@ -57,7 +57,7 @@ func main() {
 	http.HandleFunc("/echo", echo)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.Header.Get(header))
-		_, _ = w.Write([]byte("hello"))
+		_, _ = w.Write([]byte("hello\n"))
 	})
 	if https {
 		log.Fatalln(http.ListenAndServeTLS(addr, cert, key, nil))
@@ -82,18 +82,8 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer dial.Close()
-	go func() {
-		_, err := io.Copy(dial, conn)
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-	_, err = io.Copy(conn, dial)
-	if err != nil {
-		log.Println(err)
-	}
-	conn.Close()
-	dial.Close()
+	go io.Copy(dial, conn)
+	io.Copy(conn, dial)
 }
 
 func echo(w http.ResponseWriter, r *http.Request) {
